@@ -52,7 +52,8 @@ const RateMDsController = {
                 city: doctor.location?.city?.name || 'Unknown',
                 state: doctor.location?.city?.province_name || 'Unknown',
                 imagePath: doctor.images?.['100x100'] || null,
-                profileLink: doctor.url
+                profileLink: doctor.url,
+                slug: doctor.slug
             }));
 
             return res.json({
