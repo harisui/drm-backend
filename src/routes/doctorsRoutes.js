@@ -12,3 +12,4 @@ doctorsRoutes.get("/realself-search", DoctorController.search);
 doctorsRoutes.get("/ratemds-search", RateMDsController.search);
 
 doctorsRoutes.get('/ratemds/report/:slug', DoctorReportController.getRateMdDoctorReport);
+doctorsRoutes.get('/realself/report/:id', DoctorReportController.getRealSelfDoctorReport);
