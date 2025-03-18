@@ -31,7 +31,9 @@ const RealSelfController = {
                     break;
                 }
 
-                allContents.push(...data.contents);
+                // Filter only doctors
+                const doctorContents = data.contents.filter(item => item.type === 'doctor');
+                allContents.push(...doctorContents);
 
                 // Update total from first response
                 if (totalResults === 0) {
