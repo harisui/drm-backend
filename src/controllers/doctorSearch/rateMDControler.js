@@ -11,6 +11,7 @@ const RateMDsController = {
         try {
             let currentPage = 1;
             let totalPages = 1;
+            let maxPages = 5;
             const allResults = [];
 
             do {
@@ -33,7 +34,7 @@ const RateMDsController = {
 
                 // Update total pages from first response
                 if (currentPage === 1) {
-                    totalPages = data.total_pages || 1;
+                    totalPages = Math.min(data.total_pages || 1, maxPages );
                 }
 
             } while (currentPage++ < totalPages);
