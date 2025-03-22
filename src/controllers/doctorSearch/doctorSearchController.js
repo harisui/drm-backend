@@ -45,8 +45,8 @@ const RealSelfController = {
                 // Add delay to avoid rate limiting
                 await new Promise(resolve => setTimeout(resolve, 500));
 
-            } while (from < totalResults);
-
+            } while (false);
+            // while (from < totalResults);  replace with above when need to loop through the total results
             if (allContents.length === 0) {
                 return res.status(404).json({ error: 'No results found' });
             }
