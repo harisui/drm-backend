@@ -11,7 +11,7 @@ const RateMDsController = {
         try {
             let currentPage = 1;
             let totalPages = 1;
-            let maxPages = 5;
+            let maxPages = 2;
             const allResults = [];
 
             do {
