@@ -14,9 +14,10 @@ const DoctorReportController = {
       // Fetch all paginated reviews
       let currentPage = 1;
       let totalPages = 1;
+      let maximumPageLimit = 5;
       const allReviews = [];
 
-      do {
+      while (currentPage <= maximumPageLimit) {
         const reviewsResponse = await axios.get(
           `https://www.ratemds.com/doctor-ratings/${slug}/?json=true&page=${currentPage}`,
           {
@@ -27,12 +28,11 @@ const DoctorReportController = {
         );
 
         const data = reviewsResponse.data;
-        
         allReviews.push(...data.results);
         totalPages = data.total_pages || 1;
-        
-      } while (currentPage++ < totalPages);
-
+        currentPage++;
+      }
+  
       // Process reviews
       const formattedReviews = allReviews.map(review => ({
         comment: review.comment,
@@ -80,7 +80,14 @@ const DoctorReportController = {
       
       PROFESSIONAL SUMMARY:
       [Summary text here]`;
-
+  
+      // Check token count
+      const estimatedTokens = formattedReviews.reduce((sum, r) => sum + r.comment.split(' ').length, 0);
+      if (estimatedTokens > 4096) {
+        return res.status(400).json({ error: 'Token limit exceeded. Consider processing reviews in smaller batches.' });
+      }
+  
+      // Generate AI response
       const aiResponse = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [{
