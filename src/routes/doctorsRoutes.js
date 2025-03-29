@@ -13,7 +13,7 @@ doctorsRoutes.get("/realself-search", DoctorController.search);
 // RateMDs route
 doctorsRoutes.get("/ratemds-search", RateMDsController.search);
 // I want great care search route
-doctorsRoutes.post('/iwgc-search', IWantGreatCareController.search);
+doctorsRoutes.get('/iwgc-search', IWantGreatCareController.search);
 
 doctorsRoutes.get('/ratemds/report/:slug', DoctorReportController.getRateMdDoctorReport);
 doctorsRoutes.get('/realself/report/:id', DoctorReportController.getRealSelfDoctorReport);

@@ -79,7 +79,7 @@ function extractDoctors($) {
             .trim();
         const reviewCount = parseInt(reviewText.match(/\d+/)?.[0] || 0, 10);
 
-        const imageUrl = $element.find('.doc-image img').attr('src');
+        const imagePath = $element.find('.doc-image img').attr('src');
 
         if (name.trim() !== '' && specialties.trim() !== '' && profilePath && reviewCount >= 2) {
             doctors.push({
@@ -89,7 +89,7 @@ function extractDoctors($) {
                 rating,
                 reviewCount,
                 profileLink: `https://www.iwantgreatcare.org${profilePath}`,
-                imageUrl
+                imagePath
             });
         }
     });
