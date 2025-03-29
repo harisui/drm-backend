@@ -3,6 +3,7 @@ import DoctorController from "../controllers/doctorSearch/doctorSearchController
 import RateMDsController from "../controllers/doctorSearch/rateMDControler.js";
 import DoctorReportController from "../controllers/doctorSearch/doctorsReportController.js";
 import DoctorSpecialityController from "../controllers/doctorSearch/doctorSpeciality.js";
+import IWantGreatCareController from "../controllers/doctorSearch/IWantGreatCareController.js";
 
 
 export const doctorsRoutes = Router();
@@ -11,8 +12,11 @@ export const doctorsRoutes = Router();
 doctorsRoutes.get("/realself-search", DoctorController.search);
 // RateMDs route
 doctorsRoutes.get("/ratemds-search", RateMDsController.search);
+// I want great care search route
+doctorsRoutes.post('/iwgc-search', IWantGreatCareController.search);
 
 doctorsRoutes.get('/ratemds/report/:slug', DoctorReportController.getRateMdDoctorReport);
 doctorsRoutes.get('/realself/report/:id', DoctorReportController.getRealSelfDoctorReport);
 
+// other doctors in report API
 doctorsRoutes.get('/get-ratemd-doctor-specialty', DoctorSpecialityController.getRateMDSpeciality);
