@@ -22,8 +22,9 @@ const IWantGreatCareController = {
                 }
             });
 
-            const $ =cheerio.load(initialResponse.data);
-            let doctors = extractDoctors($);
+            const $ = cheerio.load(initialResponse.data);
+            const seenProfiles = new Set(); // Track unique profiles
+            let doctors = extractDoctors($, seenProfiles);
 
             const showAllLinks = [];
             $('a.show-all-btn-large').each((i, el) => {
@@ -32,14 +33,18 @@ const IWantGreatCareController = {
             });
 
             for (const path of showAllLinks) {
-                const showAllUrl = new URL(path, baseUrl).href;
-                const showAllResponse = await axios.get(showAllUrl, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                    }
-                });
-                const $showAll = cheerio.load(showAllResponse.data);
-                doctors = doctors.concat(extractDoctors($showAll));
+                try {
+                    const showAllUrl = new URL(path, baseUrl).href;
+                    const showAllResponse = await axios.get(showAllUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                        }
+                    });
+                    const $showAll = cheerio.load(showAllResponse.data);
+                    doctors = doctors.concat(extractDoctors($showAll, seenProfiles));
+                } catch (error) {
+                    console.error(`Error fetching show-all page ${path}:`, error.message);
+                }
             }
 
             if (doctors.length === 0) {
@@ -54,12 +59,15 @@ const IWantGreatCareController = {
 
         } catch (error) {
             console.error('Error:', error.message);
-            return res.status(500).json({ error: 'Failed to fetch data from IWantGreatCare' });
+            return res.status(500).json({ 
+                error: 'Failed to fetch data from IWantGreatCare',
+                details: error.message
+            });
         }
     }
 };
 
-function extractDoctors($) {
+function extractDoctors($, seenProfiles = new Set()) {
     const doctors = [];
     
     $('.row.entity.pale-green.clearfix').each((i, el) => {
@@ -80,18 +88,31 @@ function extractDoctors($) {
         const reviewCount = parseInt(reviewText.match(/\d+/)?.[0] || 0, 10);
 
         const imagePath = $element.find('.doc-image img').attr('src');
+        const profileLink = `https://www.iwantgreatcare.org${profilePath}`;
 
-        if (name.trim() !== '' && specialties.trim() !== '' && profilePath && reviewCount >= 2) {
-            doctors.push({
-                name,
-                specialties: specialties.split(', '),
-                hospital,
-                rating,
-                reviewCount,
-                profileLink: `https://www.iwantgreatcare.org${profilePath}`,
-                imagePath
-            });
+        // Check for duplicates and valid data
+        if (
+            !profileLink ||
+            seenProfiles.has(profileLink) ||
+            name.trim() === '' ||
+            specialties.trim() === '' ||
+            reviewCount < 2
+        ) {
+            return;
         }
+
+        // Add to seen profiles
+        seenProfiles.add(profileLink);
+
+        doctors.push({
+            name,
+            specialties: specialties.split(', ').filter(s => s),
+            hospital,
+            rating,
+            reviewCount,
+            profileLink,
+            imagePath
+        });
     });
 
     return doctors;
