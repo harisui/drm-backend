@@ -304,6 +304,7 @@ const DoctorReportController = {
         let currentPage = 1;
         const allReviews = [];
         const maxPages = 3;
+        let locations = [];
 
         while (currentPage <= maxPages) {
             const url = `https://www.iwantgreatcare.org/doctors/${iwgc_slug}${currentPage > 1 ? `?page=${currentPage}` : ''}`;
@@ -315,6 +316,15 @@ const DoctorReportController = {
             });
 
             const $ = cheerio.load(response.data);
+
+            // Extract locations only on first page
+            if (currentPage === 1) {
+              $('.list-entity-locations li a').each((i, el) => {
+                  const fullLocation = $(el).text().trim();
+                  locations.push(fullLocation);
+              });
+            }
+
             const pageReviews = [];
 
             $('.entity-review').each((i, el) => {
@@ -399,7 +409,8 @@ const DoctorReportController = {
             },
             negativeComment: negativeReviews[0] || null,
             insights: [],
-            summary: ''
+            summary: '',
+            locations
         };
 
         sections.forEach(section => {
