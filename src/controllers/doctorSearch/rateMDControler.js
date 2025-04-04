@@ -45,19 +45,26 @@ const RateMDsController = {
             }
 
             // Format results
-            const formattedResults = allResults.map(doctor => ({
-                id: doctor.id,
-                name: doctor.full_name,
-                specialty: doctor.specialty_name,
-                specialty_url: doctor.specialty,
-                rating: doctor.rating?.average || 0,
-                reviewCount: doctor.rating?.count || 0,
-                city: doctor.location?.city?.name || 'Unknown',
-                state: doctor.location?.city?.province_name || 'Unknown',
-                imagePath: doctor.images?.['100x100'] || null,
-                profileLink: doctor.url,
-                slug: doctor.slug
-            }));
+            const formattedResults = allResults.map(doctor => {
+                const locationData = doctor.location || (doctor.doctor_locations?.length 
+                                      ? doctor.doctor_locations[0].location 
+                                      : null);
+            
+                return {
+                    id: doctor.id,
+                    name: doctor.full_name,
+                    specialty: doctor.specialty_name,
+                    specialty_url: doctor.specialty,
+                    rating: doctor.rating?.average || 0,
+                    reviewCount: doctor.rating?.count || 0,
+                    city: locationData?.city?.name || 'Unknown',
+                    state: locationData?.city?.province_name || 'Unknown',
+                    imagePath: doctor.images?.['100x100'] || null,
+                    profileLink: doctor.url,
+                    slug: doctor.slug
+                };
+            });
+            
 
             return res.json({
                 success: true,
