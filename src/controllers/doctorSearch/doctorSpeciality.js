@@ -32,6 +32,7 @@ const DoctorSpecialityController = {
                 id: doctor.id,
                 name: doctor.full_name,
                 specialty: doctor.specialty_name,
+                specialty_url: doctor.specialty,
                 rating: doctor.rating?.average || 0,
                 reviewCount: doctor.rating?.count || 0,
                 city: doctor.location?.city?.name || 'Unknown',
