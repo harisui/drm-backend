@@ -11,7 +11,7 @@ const RateMDsController = {
         try {
             let currentPage = 1;
             let totalPages = 1;
-            let maxPages = 2;
+            let maxPages = 1;
             const allResults = [];
 
             do {
@@ -46,10 +46,10 @@ const RateMDsController = {
 
             // Format results
             const formattedResults = allResults.map(doctor => {
-                const locationData = doctor.location || (doctor.doctor_locations?.length 
-                                      ? doctor.doctor_locations[0].location 
+                const locationData = doctor.location || (doctor.doctor_locations?.length
+                                      ? doctor.doctor_locations[0].location
                                       : null);
-            
+
                 return {
                     id: doctor.id,
                     name: doctor.full_name,
@@ -64,7 +64,7 @@ const RateMDsController = {
                     slug: doctor.slug
                 };
             });
-            
+
 
             return res.json({
                 success: true,

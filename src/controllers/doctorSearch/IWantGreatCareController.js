@@ -59,7 +59,7 @@ const IWantGreatCareController = {
 
         } catch (error) {
             console.error('Error:', error.message);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 error: 'Failed to fetch data from IWantGreatCare',
                 details: error.message
             });
@@ -69,18 +69,18 @@ const IWantGreatCareController = {
 
 function extractDoctors($, seenProfiles = new Set()) {
     const doctors = [];
-    
+
     $('.row.entity.pale-green.clearfix').each((i, el) => {
         const $element = $(el);
-        
+
         // Extract basic information
         const name = $element.find('.doc-text h5 a').text().trim();
         const profilePath = $element.find('.doc-text h5 a').attr('href');
         const specialties = $element.find('.specialties .green').text().trim();
         const hospital = $element.find('.locations a.green').text().trim();
-        
+
         const rating = $element.find('.rating img[src*="icon-star-yellow-full"]').length;
-        
+
         const reviewText = $element.find('.rating').contents()
             .filter((i, el) => el.type === 'text')
             .text()
@@ -106,7 +106,8 @@ function extractDoctors($, seenProfiles = new Set()) {
 
         doctors.push({
             name,
-            specialties: specialties.split(', ').filter(s => s),
+            // specialties: specialties.split(', ').filter(s => s),
+            specialty : specialties?.split(', ')[0] || '',
             hospital,
             rating,
             reviewCount,
