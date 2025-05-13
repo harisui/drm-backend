@@ -37,6 +37,8 @@ const DoctorSpecialityController = {
                 reviewCount: doctor.rating?.count || 0,
                 city: doctor.location?.city?.name || 'Unknown',
                 state: doctor.location?.city?.province_name || 'Unknown',
+                country: doctor.location?.city?.country_name || 'Unknown',
+                countrySlug: doctor.location?.city?.country_slug || 'Unknown',
                 imagePath: doctor.images?.['100x100'] || null,
                 profileLink: doctor.url,
                 slug: doctor.slug

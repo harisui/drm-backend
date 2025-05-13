@@ -59,6 +59,7 @@ const RateMDsController = {
                     reviewCount: doctor.rating?.count || 0,
                     city: locationData?.city?.name || 'Unknown',
                     state: locationData?.city?.province_name || 'Unknown',
+                    country_slug: locationData?.city?.country_slug || 'Unknown',
                     imagePath: doctor.images?.['100x100'] || null,
                     profileLink: doctor.url,
                     slug: doctor.slug
