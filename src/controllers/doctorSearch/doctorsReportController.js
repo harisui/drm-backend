@@ -321,7 +321,7 @@ const DoctorReportController = {
             `${r.date} · ${r.author}: ${r.comment} (${r.rating}/5)`
         )
         .join('\n')
-        }\n\nIdentify key trends and format response EXACTLY like:\n\nKEY INSIGHTS:\n1. [Insight]\n2. [Insight]\n3. [Insight]\n\nPROFESSIONAL SUMMARY:\n[Summary]`;
+      }\n\nIdentify key trends and format response EXACTLY like:\n\nKEY INSIGHTS:\n1. [Insight]\n2. [Insight]\n3. [Insight]\n\nPROFESSIONAL SUMMARY:\n[Summary]\n\nIMPORTANT: Do not fabricate any information or make assumptions not supported by the reviews. If data is insufficient, say so clearly.`;
 
       // OpenAI call with token limits
       const aiResponse = await openai.chat.completions.create({
