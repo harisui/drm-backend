@@ -57,9 +57,9 @@ const RateMDsController = {
                     specialty_url: doctor.specialty,
                     rating: doctor.rating?.average || 0,
                     reviewCount: doctor.rating?.count || 0,
-                    city: locationData?.city?.name || 'Unknown',
-                    state: locationData?.city?.province_name || 'Unknown',
-                    country_slug: locationData?.city?.country_slug || 'Unknown',
+                    city: locationData?.city?.name || '',
+                    state: locationData?.city?.province_name || '',
+                    country_slug: locationData?.city?.country_slug || '',
                     imagePath: doctor.images?.['100x100'] || null,
                     profileLink: doctor.url,
                     slug: doctor.slug

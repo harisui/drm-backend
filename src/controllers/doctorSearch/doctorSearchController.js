@@ -54,12 +54,12 @@ const RealSelfController = {
             const formattedResults = allContents.map(item => ({
                 id: item.id,
                 type: item.type,
-                name: item.title || 'No title',
+                name: item.title || '',
                 specialty: item.specialty || null,
                 rating: item.rating || 0,
                 reviewCount: item.review_count || 0,
-                city: item.city || 'Unknown',
-                state: item.state || 'Unknown',
+                city: item.city || '',
+                state: item.state || '',
                 imagePath: item.image_path ? `https://www.realself.com/${item.image_path}` : null,
                 profileLink: `https://www.realself.com${item.uri}`
             }));
