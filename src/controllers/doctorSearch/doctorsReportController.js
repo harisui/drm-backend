@@ -17,6 +17,7 @@ const DoctorReportController = {
       let totalPages = 1;
       let maximumPageLimit = 5;
       const allReviews = [];
+      const rawApiResponses = []
 
       while (currentPage <= maximumPageLimit) {
         const reviewsResponse = await axios.get(
@@ -29,6 +30,7 @@ const DoctorReportController = {
         );
 
         const data = reviewsResponse.data;
+        rawApiResponses.push(data); 
         allReviews.push(...data.results);
         totalPages = data.total_pages || 1;
         if (currentPage >= totalPages) break;
@@ -195,7 +197,8 @@ const DoctorReportController = {
 
       return res.json({
         success: true,
-        ...result
+        ...result,
+        originalApiResponse: rawApiResponses
       });
 
     } catch (error) {
@@ -218,6 +221,7 @@ const DoctorReportController = {
     try {
       let offset = 1;
       const allReviews = [];
+      const rawApiResponses = [];
       let totalReviews;
 
       // Initial request to get first batch and total count
@@ -232,6 +236,7 @@ const DoctorReportController = {
 
       totalReviews = parseInt(initialResponse.data.summary.review_count);
       allReviews.push(...initialResponse.data.reviews);
+      rawApiResponses.push(initialResponse.data); // ✅ Push initial response
       offset += initialResponse.data.reviews.length;
 
       // Fetch remaining reviews in batches
@@ -244,6 +249,7 @@ const DoctorReportController = {
         if (!response.data?.reviews || response.data.reviews.length === 0) break;
 
         allReviews.push(...response.data.reviews);
+        rawApiResponses.push(response.data); // ✅ Push each subsequent response
         offset += response.data.reviews.length;
       }
 
@@ -370,7 +376,8 @@ const DoctorReportController = {
         meta: {
           totalReviews: allReviews.length, // Keeping in meta for backward compatibility
           processedReviews: processedReviews.length
-        }
+        },
+        originalApiResponse: rawApiResponses
       });
     } catch (error) {
       console.error('RealSelf Error:', error.message);
@@ -393,6 +400,7 @@ const DoctorReportController = {
       const allReviews = [];
       const maxPages = 3;
       let locations = [];
+      const originalApiResponses = [];
 
       while (currentPage <= maxPages) {
         const url = `https://www.iwantgreatcare.org/doctors/${iwgc_slug}${currentPage > 1 ? `?page=${currentPage}` : ''}`;
@@ -401,6 +409,12 @@ const DoctorReportController = {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
           }
+        });
+
+        originalApiResponses.push({
+          page: currentPage,
+          url,
+          html: response.data
         });
 
         const $ = cheerio.load(response.data);
@@ -523,7 +537,7 @@ const DoctorReportController = {
         insights: [],
         summary: '',
         locations,
-        totalReviews: totalReviews
+        totalReviews
       };
 
       sections.forEach(section => {
@@ -539,7 +553,8 @@ const DoctorReportController = {
 
       return res.json({
         success: true,
-        ...result
+        ...result,
+        originalApiResponses
       });
 
     } catch (error) {
