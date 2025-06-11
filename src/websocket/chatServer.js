@@ -61,21 +61,19 @@ class ChatWebSocketServer {
       this.sendMessage(ws, {
         type: "CHAT_INITIALIZED",
         payload: {
-          message: `Hello! I'm here to help you learn about Dr. ${params._nme}. I can only provide information about their practice, specialization, location, ratings, and patient reviews. Please ask me questions specifically about this doctor.`,
+          message: `Hello! I'm here to help you learn about Dr. ${params._nme}. You can ask me about their specialization, location, ratings, patient reviews, or any other information I have available. What would you like to know?`,
         },
       });
     } catch (error) {
       console.error("Error initializing chat:", error);
-      this.sendError(ws, "Failed to initialize chat");
+      this.sendError(ws, "Sorry, there was an issue initializing the chat. Please refresh the page and try again.");
     }
   }
 
-  // Validate if the user's message is doctor-related
   isDoctorRelatedQuery(message, doctorName) {
     const lowerMessage = message.toLowerCase();
     const lowerDoctorName = doctorName.toLowerCase();
-    
-    // Doctor-related keywords
+
     const doctorKeywords = [
       'doctor', 'dr', 'physician', 'medical', 'practice', 'clinic', 'hospital',
       'patient', 'review', 'rating', 'appointment', 'treatment', 'specialization',
@@ -85,7 +83,6 @@ class ChatWebSocketServer {
       'expertise', 'background', 'credentials', 'years', 'trained', 'residency'
     ];
 
-    // Off-topic keywords that should be rejected
     const offTopicKeywords = [
       'weather', 'politics', 'sports', 'movies', 'music', 'food', 'travel',
       'technology', 'programming', 'coding', 'recipe', 'joke', 'story',
@@ -95,7 +92,6 @@ class ChatWebSocketServer {
       'real estate', 'business', 'marketing', 'social media'
     ];
 
-    // Check if message contains doctor's name
     const containsDoctorName = lowerMessage.includes(lowerDoctorName) || 
                                lowerMessage.includes(lowerDoctorName.split(' ')[0]) ||
                                lowerMessage.includes('this doctor') ||
@@ -105,25 +101,17 @@ class ChatWebSocketServer {
                                lowerMessage.includes('they') ||
                                lowerMessage.includes('them');
 
-    // Check for doctor-related keywords
     const containsDoctorKeywords = doctorKeywords.some(keyword => 
       lowerMessage.includes(keyword)
     );
 
-    // Check for off-topic keywords
     const containsOffTopicKeywords = offTopicKeywords.some(keyword => 
       lowerMessage.includes(keyword)
     );
 
-    // Additional checks for common greetings and doctor context
     const isGreeting = /^(hi|hello|hey|good morning|good afternoon|good evening|greetings)$/i.test(lowerMessage.trim());
     const isSimpleQuestion = /^(who is|what is|tell me about|can you|do you|how|where|when|why)/i.test(lowerMessage.trim());
 
-    // Return true if:
-    // 1. It's a greeting (always allow)
-    // 2. Contains doctor name or pronouns AND doctor keywords
-    // 3. Contains doctor keywords but no off-topic keywords
-    // 4. Is a simple question that could be about the doctor
     return isGreeting || 
            (containsDoctorName && containsDoctorKeywords) ||
            (containsDoctorKeywords && !containsOffTopicKeywords) ||
@@ -139,7 +127,6 @@ class ChatWebSocketServer {
 
       const { params, report } = ws.doctorInfo;
 
-      // Validate if the query is doctor-related
       if (!this.isDoctorRelatedQuery(message, params._nme)) {
         this.sendMessage(ws, {
           type: "BOT_RESPONSE",
@@ -156,10 +143,8 @@ class ChatWebSocketServer {
         payload: { isTyping: true },
       });
 
-      // Create context for GPT
       const doctorContext = this.createDoctorContext(params, report);
 
-      // Enhanced system prompt with strict instructions
       const systemPrompt = `You are a specialized assistant that ONLY provides information about Dr. ${params._nme}. 
 
 STRICT RULES:
@@ -169,19 +154,19 @@ STRICT RULES:
 4. Do NOT discuss topics unrelated to healthcare or this specific doctor
 5. Do NOT make up or infer information not provided in the data
 6. If you don't have specific information requested, say so clearly and offer related information you do have
+7. When possible, quote directly from patient reviews or use exact numbers from the data to support your answers
 
 Doctor Information:
 ${doctorContext}
 
 Remember: You are here to help people learn about THIS SPECIFIC DOCTOR only. Stay strictly within this scope.`;
 
-      // Prepare messages for GPT
       const messages = [
         {
           role: "system",
           content: systemPrompt,
         },
-        ...conversationHistory.slice(-8), // Keep last 8 messages for context
+        ...conversationHistory.slice(-8),
         {
           role: "user",
           content: message,
@@ -192,14 +177,13 @@ Remember: You are here to help people learn about THIS SPECIFIC DOCTOR only. Sta
         model: "gpt-3.5-turbo",
         messages: messages,
         max_tokens: 400,
-        temperature: 0.3, // Lower temperature for more focused responses
+        temperature: 0.3,
         presence_penalty: 0.1,
         frequency_penalty: 0.1,
       });
 
       let botResponse = completion.choices[0].message.content;
 
-      // Additional validation of GPT response
       if (!this.isResponseAppropriate(botResponse, params._nme)) {
         botResponse = `I can only provide information about Dr. ${params._nme}. Please ask me about their practice, specialization, location, ratings, or patient reviews.`;
       }
@@ -223,12 +207,10 @@ Remember: You are here to help people learn about THIS SPECIFIC DOCTOR only. Sta
     }
   }
 
-  // Validate GPT response to ensure it's appropriate
   isResponseAppropriate(response, doctorName) {
     const lowerResponse = response.toLowerCase();
     const lowerDoctorName = doctorName.toLowerCase();
 
-    // Check if response mentions the doctor or medical topics
     const mentionsDoctorOrMedical = lowerResponse.includes(lowerDoctorName) ||
                                    lowerResponse.includes('doctor') ||
                                    lowerResponse.includes('dr.') ||
@@ -242,7 +224,6 @@ Remember: You are here to help people learn about THIS SPECIFIC DOCTOR only. Sta
                                    lowerResponse.includes('clinic') ||
                                    lowerResponse.includes('hospital');
 
-    // Check for inappropriate content
     const inappropriateContent = [
       'recipe', 'weather', 'politics', 'sports', 'entertainment',
       'programming', 'coding', 'joke', 'story', 'music', 'movie',
@@ -257,51 +238,83 @@ Remember: You are here to help people learn about THIS SPECIFIC DOCTOR only. Sta
   }
 
   createDoctorContext(params, report) {
-    const context = `
-Doctor Name: ${params._nme}
-Specialization: ${params._spt.replace(/-/g, " ")}
-Location: ${params._ct}, ${params._st}
-Average Rating: ${params._rt}/5
-Total Reviews: ${report.totalReviews || 'Not available'}
+    let context = `# Doctor Information
 
-Recent Positive Comments:
-${
-  report.positiveComments?.first
-    ? `- "${report.positiveComments.first.comment}" (${report.positiveComments.first.date})`
-    : "No recent positive comments available"
-}
-${
-  report.positiveComments?.second
-    ? `- "${report.positiveComments.second.comment}" (${report.positiveComments.second.date})`
-    : ""
-}
+- **Name:** Dr. ${params._nme}
+- **Specialization:** ${params._spt.replace(/-/g, " ")}
+- **Location:** ${params._ct}, ${params._st}
+- **Average Rating:** ${params._rt}/5
+- **Total Reviews:** ${report.totalReviews || 'Not available'}
+`;
 
-${
-  report.negativeComment
-    ? `Recent Negative Comment: "${report.negativeComment.comment}" (${report.negativeComment.date})`
-    : "No recent negative comments available"
-}
+    if (report.originalApiResponse && report.originalApiResponse.length > 0) {
+      const apiResponse = report.originalApiResponse[0];
+      if (apiResponse.results && Array.isArray(apiResponse.results)) {
+        const reviews = apiResponse.results;
+        const totalReviewsInSample = reviews.length;
 
-Key Insights:
-${
-  report.insights && report.insights.length > 0
-    ? report.insights.map((insight, index) => `${index + 1}. ${insight}`).join("\n")
-    : "No specific insights available"
-}
+        // Calculate average ratings from available reviews
+        const sumStaff = reviews.reduce((sum, review) => sum + (review.staff || 0), 0);
+        const sumPunctuality = reviews.reduce((sum, review) => sum + (review.punctuality || 0), 0);
+        const sumHelpfulness = reviews.reduce((sum, review) => sum + (review.helpfulness || 0), 0);
+        const sumKnowledge = reviews.reduce((sum, review) => sum + (review.knowledge || 0), 0);
+        const sumAverage = reviews.reduce((sum, review) => sum + (review.average || 0), 0);
 
-Professional Summary:
-${report.summary || 'No summary available'}
+        const avgStaff = totalReviewsInSample > 0 ? (sumStaff / totalReviewsInSample).toFixed(1) : 'N/A';
+        const avgPunctuality = totalReviewsInSample > 0 ? (sumPunctuality / totalReviewsInSample).toFixed(1) : 'N/A';
+        const avgHelpfulness = totalReviewsInSample > 0 ? (sumHelpfulness / totalReviewsInSample).toFixed(1) : 'N/A';
+        const avgKnowledge = totalReviewsInSample > 0 ? (sumKnowledge / totalReviewsInSample).toFixed(1) : 'N/A';
+        const avgOverall = totalReviewsInSample > 0 ? (sumAverage / totalReviewsInSample).toFixed(1) : 'N/A';
 
-Yearly Review Data:
-${
-  report.yearlyData && report.yearlyData.length > 0
-    ? report.yearlyData.map(
-        (year) =>
-          `${year.year}: ${year.positive} positive, ${year.negative} negative (${year.total} total)`
-      ).join("\n")
-    : "No yearly review data available"
-}
-    `.trim();
+        context += `
+# Average Ratings (based on ${totalReviewsInSample} reviews)
+- Staff: ${avgStaff}/5
+- Punctuality: ${avgPunctuality}/5
+- Helpfulness: ${avgHelpfulness}/5
+- Knowledge: ${avgKnowledge}/5
+- Overall: ${avgOverall}/5
+`;
+
+        // Include a few recent reviews
+        context += `
+# Recent Patient Reviews (sample)
+`;
+        reviews.slice(0, 3).forEach((review, index) => {
+          context += `
+## Review ${index + 1}
+- Date: ${review.created}
+- Average Rating: ${review.average}/5
+- Staff: ${review.staff}/5
+- Punctuality: ${review.punctuality}/5
+- Helpfulness: ${review.helpfulness}/5
+- Knowledge: ${review.knowledge}/5
+- Comment: "${review.comment}"
+`;
+        });
+      }
+    }
+
+    // Include other parts like insights, summary, yearlyData if available
+    if (report.insights && report.insights.length > 0) {
+      context += `
+# Key Insights
+${report.insights.map((insight, index) => `- ${insight}`).join('\n')}
+`;
+    }
+
+    if (report.summary) {
+      context += `
+# Professional Summary
+${report.summary}
+`;
+    }
+
+    if (report.yearlyData && report.yearlyData.length > 0) {
+      context += `
+# Yearly Review Data
+${report.yearlyData.map(year => `- ${year.year}: ${year.positive} positive, ${year.negative} negative (${year.total} total)`).join('\n')}
+`;
+    }
 
     return context;
   }
