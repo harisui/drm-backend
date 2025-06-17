@@ -195,10 +195,26 @@ const DoctorReportController = {
         }
       });
 
+      // Process original API responses to only include necessary data
+      const minimalOriginalResponses = rawApiResponses.map(response => ({
+        results: response.results.map(review => ({
+          doctor_full_name: review.doctor_full_name,
+          comment: review.comment,
+          created: review.created,
+          average: review.average,
+          staff: review.staff,
+          helpfulness: review.helpfulness,
+          knowledge: review.knowledge
+        })),
+        current_page: response.current_page,
+        total_pages: response.total_pages,
+        count: response.count
+      }));
+
       return res.json({
         success: true,
         ...result,
-        originalApiResponse: rawApiResponses
+        originalApiResponse: minimalOriginalResponses
       });
 
     } catch (error) {
@@ -370,6 +386,22 @@ const DoctorReportController = {
         }
       });
 
+    // Process original API responses to only include necessary data
+      const minimalOriginalResponses = rawApiResponses.map(response => ({
+        results: response.results.map(review => ({
+          doctor_full_name: review.doctor_full_name,
+          comment: review.comment,
+          created: review.created,
+          average: review.average,
+          staff: review.staff,
+          helpfulness: review.helpfulness,
+          knowledge: review.knowledge
+        })),
+        current_page: response.current_page,
+        total_pages: response.total_pages,
+        count: response.count
+      }));
+
       return res.json({
         success: true,
         ...result,
@@ -377,7 +409,7 @@ const DoctorReportController = {
           totalReviews: allReviews.length, // Keeping in meta for backward compatibility
           processedReviews: processedReviews.length
         },
-        originalApiResponse: rawApiResponses
+        originalApiResponse: minimalOriginalResponses
       });
     } catch (error) {
       console.error('RealSelf Error:', error.message);
@@ -551,10 +583,26 @@ const DoctorReportController = {
         }
       });
 
+    // Process original API responses to only include necessary data
+      const minimalOriginalResponses = rawApiResponses.map(response => ({
+        results: response.results.map(review => ({
+          doctor_full_name: review.doctor_full_name,
+          comment: review.comment,
+          created: review.created,
+          average: review.average,
+          staff: review.staff,
+          helpfulness: review.helpfulness,
+          knowledge: review.knowledge
+        })),
+        current_page: response.current_page,
+        total_pages: response.total_pages,
+        count: response.count
+      }));
+
       return res.json({
         success: true,
         ...result,
-        originalApiResponses
+        originalApiResponses: minimalOriginalResponses
       });
 
     } catch (error) {
