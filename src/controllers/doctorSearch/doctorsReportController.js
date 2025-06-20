@@ -138,16 +138,16 @@ const DoctorReportController = {
         };
       });
 
-      // Prepare prompt for OpenAI (existing implementation)
+      // Prepare updated prompt for OpenAI with title request
       const prompt = `Based on these doctor reviews:\n\n${formattedReviews.map(r =>
         `[${r.date}] ${r.comment}`
       ).join('\n')}\n\n
         Please format your response EXACTLY like this:
         
         KEY INSIGHTS:
-        1. [First insight]
-        2. [Second insight]
-        3. [Third insight]
+        1. [Single-word title]: [First insight]
+        2. [Single-word title]: [Second insight]
+        3. [Single-word title]: [Third insight]
         
         PROFESSIONAL SUMMARY:
         [Summary text here]`;
@@ -188,12 +188,28 @@ const DoctorReportController = {
         const lines = section.split('\n');
         const header = lines[0].trim();
 
-        if (header === 'KEY INSIGHTS:') {
-          result.insights = lines.slice(1, 4);
-        } else if (header === 'PROFESSIONAL SUMMARY:') {
-          result.summary = lines.slice(1).join(' ');
-        }
-      });
+          if (header === 'KEY INSIGHTS:') {
+            const insightLines = lines.slice(1, 4);
+            result.insights = insightLines.map(line => {
+              // Extract the single-word title and insight text
+              const match = line.match(/^\d+\.\s([^:]+):\s(.+)$/);
+              if (match) {
+                return {
+                  title: match[1].trim(),
+                  text: match[2].trim()
+                };
+              }
+              // Fallback if format isn't matched
+              const text = line.replace(/^\d+\.\s/, '');
+              return {
+                title: 'Strength', // Default title
+                text: text
+              };
+            });
+          } else if (header === 'PROFESSIONAL SUMMARY:') {
+            result.summary = lines.slice(1).join(' ');
+          }
+        });
 
       // Process original API responses to only include necessary data
       const minimalOriginalResponses = rawApiResponses.map(response => ({
@@ -252,7 +268,7 @@ const DoctorReportController = {
 
       totalReviews = parseInt(initialResponse.data.summary.review_count);
       allReviews.push(...initialResponse.data.reviews);
-      rawApiResponses.push(initialResponse.data); // ✅ Push initial response
+      rawApiResponses.push(initialResponse.data);
       offset += initialResponse.data.reviews.length;
 
       // Fetch remaining reviews in batches
@@ -265,7 +281,7 @@ const DoctorReportController = {
         if (!response.data?.reviews || response.data.reviews.length === 0) break;
 
         allReviews.push(...response.data.reviews);
-        rawApiResponses.push(response.data); // ✅ Push each subsequent response
+        rawApiResponses.push(response.data);
         offset += response.data.reviews.length;
       }
 
@@ -302,7 +318,6 @@ const DoctorReportController = {
             month: 'short',
             year: 'numeric'
           }),
-          // rating: parseInt(review.rating) || 0
         }));
 
       const negativeComments = allReviews
@@ -343,7 +358,7 @@ const DoctorReportController = {
             `${r.date} · ${r.author}: ${r.comment} (${r.rating}/5)`
         )
         .join('\n')
-      }\n\nIdentify key trends and format response EXACTLY like:\n\nKEY INSIGHTS:\n1. [Insight]\n2. [Insight]\n3. [Insight]\n\nPROFESSIONAL SUMMARY:\n[Summary]\n\nIMPORTANT: Do not fabricate any information or make assumptions not supported by the reviews. If data is insufficient, say so clearly.`;
+      }\n\nIdentify key trends and format response EXACTLY like:\n\nKEY INSIGHTS:\n1. [Single-word title]: [Insight]\n2. [Single-word title]: [Insight]\n3. [Single-word title]: [Insight]\n\nPROFESSIONAL SUMMARY:\n[Summary]\n\nIMPORTANT: Do not fabricate any information or make assumptions not supported by the reviews. If data is insufficient, say so clearly.`;
 
       // OpenAI call with token limits
       const aiResponse = await openai.chat.completions.create({
@@ -378,9 +393,23 @@ const DoctorReportController = {
         const lines = section.split('\n');
         const header = lines[0].trim();
         if (header === 'KEY INSIGHTS:') {
-          result.insights = lines
-            .slice(1, 4)
-            .map(l => l.replace(/^\d+\.\s*/, ''));
+          const insightLines = lines.slice(1, 4);
+          result.insights = insightLines.map(line => {
+            // Extract the single-word title and insight text
+            const match = line.match(/^\d+\.\s([^:]+):\s(.+)$/);
+            if (match) {
+              return {
+                title: match[1].trim(),
+                text: match[2].trim()
+              };
+            }
+            // Fallback if format isn't matched
+            const text = line.replace(/^\d+\.\s/, '');
+            return {
+              title: 'Strength', // Default title
+              text: text
+            };
+          });
         } else if (header === 'PROFESSIONAL SUMMARY:') {
           result.summary = lines.slice(1).join(' ').substring(0, MAX_COMMENT_LENGTH);
         }
@@ -538,9 +567,9 @@ const DoctorReportController = {
         Please format your response EXACTLY like this:
         
         KEY INSIGHTS:
-        1. [First insight]
-        2. [Second insight]
-        3. [Third insight]
+        1. [Single-word title]: [First insight]
+        2. [Single-word title]: [Second insight]
+        3. [Single-word title]: [Third insight]
         
         PROFESSIONAL SUMMARY:
         [Summary text here]`;
@@ -577,7 +606,23 @@ const DoctorReportController = {
         const header = lines[0].trim();
 
         if (header === 'KEY INSIGHTS:') {
-          result.insights = lines.slice(1, 4);
+          const insightLines = lines.slice(1, 4);
+          result.insights = insightLines.map(line => {
+            // Extract the single-word title and insight text
+            const match = line.match(/^\d+\.\s([^:]+):\s(.+)$/);
+            if (match) {
+              return {
+                title: match[1].trim(),
+                text: match[2].trim()
+              };
+            }
+            // Fallback if format isn't matched
+            const text = line.replace(/^\d+\.\s/, '');
+            return {
+              title: 'Strength', // Default title
+              text: text
+            };
+          });
         } else if (header === 'PROFESSIONAL SUMMARY:') {
           result.summary = lines.slice(1).join(' ');
         }
