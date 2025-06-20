@@ -209,7 +209,13 @@ Stay strictly within this scope.`;
     const sumHelpfulness = allReviews.reduce((sum, review) => sum + (review.helpfulness || 0), 0);
     const sumKnowledge = allReviews.reduce((sum, review) => sum + (review.knowledge || 0), 0);
 
-    const avgOverall = totalReviews > 0 ? (sumAverage / totalReviews).toFixed(1) : params._rt || 'N/A';
+    const avgOverall =
+      totalReviews > 0
+        ? parseFloat(((sumAverage / totalReviews) * 2).toFixed(1))
+        : params._rt
+        ? parseFloat((+params._rt * 2).toFixed(1))
+        : 'N/A';
+
     const avgStaff = totalReviews > 0 ? (sumStaff / totalReviews).toFixed(1) : 'N/A';
     const avgHelpfulness = totalReviews > 0 ? (sumHelpfulness / totalReviews).toFixed(1) : 'N/A';
     const avgKnowledge = totalReviews > 0 ? (sumKnowledge / totalReviews).toFixed(1) : 'N/A';
