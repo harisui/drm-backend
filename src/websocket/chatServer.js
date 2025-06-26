@@ -78,7 +78,8 @@ class ChatWebSocketServer {
     const doctorKeywords = [
       'doctor', 'dr', lowerDoctorName, lowerDoctorName.split(' ')[0],
       'physician', 'surgeon', 'review', 'rating', 'patient', 'procedure',
-      'specialization', 'experience', 'consultation', 'appointment', ...specialization
+      'specialization', 'experience', 'consultation', 'appointment', ...specialization,
+      'anything to note', 'what should i know', 'tell me about', 'important to know', 'summary', 'overview', 'anything else', 'key points', 'insights', 'notable', 'noteworthy'
     ];
 
     const offTopicKeywords = [
@@ -188,7 +189,7 @@ Stay strictly within this scope.`;
         botResponse = `I can only provide information about ${params._nme}. Please ask about their practice, specialization, ratings, or patient reviews.`;
       } else {
         // Append follow-up prompt for valid answers, only if not already present
-        if (!botResponse.toLowerCase().includes(followUpPrompt.toLowerCase())) {
+        if (!this.hasFollowUpPrompt(botResponse)) {
           botResponse += `\n\n${followUpPrompt}`;
         }
       }
@@ -350,6 +351,25 @@ ${report.summary}
 
     // Check if any greeting word is present as a whole word
     return greetings.some(greet => new RegExp(`\\b${greet}\\b`).test(lowerMessage));
+  }
+
+  hasFollowUpPrompt(response) {
+    const followUpPhrases = [
+      'if you have any more questions',
+      'if you have any questions',
+      'if you need further information',
+      'feel free to ask',
+      'just type them here',
+      'let me know if',
+      'anything else you want to know',
+      'can i help with',
+      'can i assist',
+      'still have questions',
+      'want to know more',
+      'need more info'
+    ];
+    const lowerResponse = response.toLowerCase();
+    return followUpPhrases.some(phrase => lowerResponse.includes(phrase));
   }
 }
 
