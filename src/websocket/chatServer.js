@@ -98,6 +98,30 @@ class ChatWebSocketServer {
       }
 
       const { params, report } = ws.doctorInfo;
+      const followUpPrompt = 'If you still have any questions about the doctor, just type them here, and I will look for an answer for you!';
+
+      if (this.isGreeting(message)) {
+        this.sendMessage(ws, {
+          type: "BOT_RESPONSE",
+          payload: {
+            message: `Hello! I can provide information about ${params._nme}. Ask me about their practice, specialization, ratings, or patient reviews.`,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+
+      // Check for engagement prompt
+      if (this.isEngagementPrompt(message)) {
+        this.sendMessage(ws, {
+          type: "BOT_RESPONSE",
+          payload: {
+            message: `I'm here to help! If you have any more questions about ${params._nme}, their practice, specialization, or patient reviews, just ask.`,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
 
       if (!this.isDoctorRelatedQuery(message, params._nme)) {
         this.sendMessage(ws, {
@@ -162,6 +186,11 @@ Stay strictly within this scope.`;
 
       if (!this.isResponseAppropriate(botResponse, params._nme)) {
         botResponse = `I can only provide information about ${params._nme}. Please ask about their practice, specialization, ratings, or patient reviews.`;
+      } else {
+        // Append follow-up prompt for valid answers, only if not already present
+        if (!botResponse.toLowerCase().includes(followUpPrompt.toLowerCase())) {
+          botResponse += `\n\n${followUpPrompt}`;
+        }
       }
 
       this.sendMessage(ws, {
@@ -289,6 +318,38 @@ ${report.summary}
       type: "ERROR",
       payload: { message },
     });
+  }
+
+  isEngagementPrompt(message) {
+    const engagementPhrases = [
+      'any questions',
+      'any other questions',
+      'if you have questions',
+      'let me know if',
+      'just type them here',
+      'anything else',
+      'need more info',
+      'want to know more',
+      'still have questions',
+      'feel free to ask',
+      'can i help with',
+      'can i assist',
+      'how can i help',
+      'how can i assist',
+    ];
+    const lowerMessage = message.toLowerCase();
+    return engagementPhrases.some(phrase => lowerMessage.includes(phrase));
+  }
+
+  isGreeting(message) {
+    const greetings = [
+      'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening',
+      'howdy', 'yo', 'hiya', 'sup', 'what\'s up', 'morning', 'evening', 'afternoon'
+    ];
+    const lowerMessage = message.trim().toLowerCase();
+
+    // Check if any greeting word is present as a whole word
+    return greetings.some(greet => new RegExp(`\\b${greet}\\b`).test(lowerMessage));
   }
 }
 
