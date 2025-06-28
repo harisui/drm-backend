@@ -124,6 +124,12 @@ class ChatWebSocketServer {
         return;
       }
 
+      // Check for "anything to note" query
+      if (this.isAnythingToNoteQuery(message)) {
+        await this.handleAnythingToNoteQuery(ws, params, report);
+        return;
+      }
+
       if (!this.isDoctorRelatedQuery(message, params._nme)) {
         this.sendMessage(ws, {
           type: "BOT_RESPONSE",
@@ -227,11 +233,13 @@ Stay strictly within this scope.`;
   createDoctorContext(params, report) {
     // Calculate accurate ratings from all reviews
     let allReviews = [];
-    report.originalApiResponse.forEach(page => {
-      if (page.results) {
-        allReviews = [...allReviews, ...page.results];
-      }
-    });
+    if (report.originalApiResponse && Array.isArray(report.originalApiResponse)) {
+      report.originalApiResponse.forEach(page => {
+        if (page && page.results && Array.isArray(page.results)) {
+          allReviews = [...allReviews, ...page.results];
+        }
+      });
+    }
 
     const totalReviews = allReviews.length;
     const sumAverage = allReviews.reduce((sum, review) => sum + (review.average || 0), 0);
@@ -239,6 +247,7 @@ Stay strictly within this scope.`;
     const sumHelpfulness = allReviews.reduce((sum, review) => sum + (review.helpfulness || 0), 0);
     const sumKnowledge = allReviews.reduce((sum, review) => sum + (review.knowledge || 0), 0);
 
+    // Convert 5-star rating to 10-point scale (multiply by 2)
     const avgOverall =
       totalReviews > 0
         ? parseFloat(((sumAverage / totalReviews) * 2).toFixed(1))
@@ -255,11 +264,11 @@ Stay strictly within this scope.`;
 - **Name:** ${params._nme}
 - **Specialization:** ${params._spt.replace(/-/g, ' ')}
 - **Location:** ${params._ct}, ${params._st}
-- **Average Rating:** ${avgOverall}/5
+- **Average Rating:** ${avgOverall}/10
 - **Total Reviews:** ${report.totalReviews || totalReviews}
 
 # Average Ratings (based on ${totalReviews} reviews)
-- Overall: ${avgOverall}/5
+- Overall: ${avgOverall}/10
 - Staff: ${avgStaff}/5
 - Helpfulness: ${avgHelpfulness}/5
 - Knowledge: ${avgKnowledge}/5
@@ -370,6 +379,105 @@ ${report.summary}
     ];
     const lowerResponse = response.toLowerCase();
     return followUpPhrases.some(phrase => lowerResponse.includes(phrase));
+  }
+
+  isAnythingToNoteQuery(message) {
+    const noteKeywords = [
+      'anything to note',
+      'anything to know',
+      'important to note',
+      'should i know',
+      'what should i know',
+      'anything notable',
+      'anything noteworthy',
+      'key points',
+      'important points',
+      'things to note',
+      'things to know',
+      'notable things',
+      'noteworthy things'
+    ];
+    const lowerMessage = message.toLowerCase();
+    return noteKeywords.some(keyword => lowerMessage.includes(keyword));
+  }
+
+  async handleAnythingToNoteQuery(ws, params, report) {
+    try {
+      this.sendMessage(ws, {
+        type: "BOT_TYPING",
+        payload: { isTyping: true },
+      });
+
+      // Calculate ratings and insights
+      let allReviews = [];
+      if (report.originalApiResponse && Array.isArray(report.originalApiResponse)) {
+        report.originalApiResponse.forEach(page => {
+          if (page && page.results && Array.isArray(page.results)) {
+            allReviews = [...allReviews, ...page.results];
+          }
+        });
+      }
+
+      const totalReviews = allReviews.length;
+      const sumAverage = allReviews.reduce((sum, review) => sum + (review.average || 0), 0);
+      
+      // Convert 5-star rating to 10-point scale (multiply by 2)
+      const avgOverall = totalReviews > 0 
+        ? parseFloat(((sumAverage / totalReviews) * 2).toFixed(1))
+        : params._rt 
+        ? parseFloat((+params._rt * 2).toFixed(1))
+        : 'N/A';
+
+      // Analyze sentiment from reviews
+      const positiveReviews = allReviews.filter(review => review.average >= 4);
+      const negativeReviews = allReviews.filter(review => review.average <= 2);
+
+      let response = `Key Points About ${params._nme}\n\n`;
+
+      // Rating assessment
+      if (avgOverall !== 'N/A') {
+        if (avgOverall >= 9.0) {
+          response += `**Rating**: ${avgOverall}/10 - Excellent\n\n`;
+        } else if (avgOverall >= 8.0) {
+          response += `**Rating**: ${avgOverall}/10 - Good\n\n`;
+        } else if (avgOverall >= 6.0) {
+          response += `**Rating**: ${avgOverall}/10 - Average\n\n`;
+        } else {
+          response += `**Rating**: ${avgOverall}/10 - Below Average\n\n`;
+        }
+      }
+
+      // Key insights (behavior/personality)
+      if (report.insights && report.insights.length > 0) {
+        response += `**Key Points**:\n`;
+        // Take only the first 3 most important insights
+        const importantInsights = report.insights.slice(0, 3);
+        importantInsights.forEach(insight => {
+          response += `• ${insight}\n`;
+        });
+        response += `\n`;
+      }
+
+      // Overall assessment
+      response += `**Overall**: ${params._nme} is ${avgOverall >= 8.0 ? 'a well-regarded' : avgOverall >= 6.0 ? 'a moderately rated' : 'a lower-rated'} ${params._spt.replace(/-/g, ' ')} specialist. ${positiveReviews.length > negativeReviews.length ? 'Most patients report positive experiences.' : negativeReviews.length > positiveReviews.length ? 'Some patients have raised concerns.' : 'Patient experiences are mixed.'}`;
+
+      this.sendMessage(ws, {
+        type: "BOT_RESPONSE",
+        payload: {
+          message: response,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("Error handling anything to note query:", error);
+      this.sendMessage(ws, {
+        type: "BOT_RESPONSE",
+        payload: {
+          message: `I apologize, but I'm having trouble analyzing the key points about ${params._nme}. Please try asking about their ratings or reviews instead.`,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
   }
 }
 
