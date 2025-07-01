@@ -55,13 +55,12 @@ class ChatWebSocketServer {
 
   async initializeChat(ws, { params, report }) {
     try {
-      // Store doctor info for this connection
       ws.doctorInfo = { params, report };
 
       this.sendMessage(ws, {
         type: "CHAT_INITIALIZED",
         payload: {
-          message: `Hello! I'm here to help you learn about ${params._nme} or answer any other questions you have. What would you like to know?`,
+          message: `Hello! I'm here to answer any questions you have, including information about ${params._nme} or any other topic you'd like to explore. What's on your mind?`,
         },
       });
     } catch (error) {
@@ -78,32 +77,30 @@ class ChatWebSocketServer {
       }
 
       const { params, report } = ws.doctorInfo;
-      const followUpPrompt = 'If you have any more questions, just type them here, and I will do my best to answer!';
+      const followUpPrompt = 'Feel free to ask me anything, and I’ll do my best to provide a helpful response!';
 
       if (this.isGreeting(message)) {
         this.sendMessage(ws, {
           type: "BOT_RESPONSE",
           payload: {
-            message: `Hello! I'm here to assist with information about ${params._nme} or any other topic you'd like to discuss.`,
+            message: `Hi! I'm ready to chat about ${params._nme} or anything else you're curious about. What's up?`,
             timestamp: new Date().toISOString(),
           },
         });
         return;
       }
 
-      // Check for engagement prompt
       if (this.isEngagementPrompt(message)) {
         this.sendMessage(ws, {
           type: "BOT_RESPONSE",
           payload: {
-            message: `I'm here to help! Ask me anything about ${params._nme} or any other topic.`,
+            message: `Happy to help! Ask me about ${params._nme} or any other topic you’d like to discuss.`,
             timestamp: new Date().toISOString(),
           },
         });
         return;
       }
 
-      // Check for "anything to note" query
       if (this.isAnythingToNoteQuery(message)) {
         await this.handleAnythingToNoteQuery(ws, params, report);
         return;
@@ -119,12 +116,12 @@ class ChatWebSocketServer {
           message.toLowerCase().includes('brief') ||
           message.toLowerCase().includes('overview');
 
-      const systemPrompt = `You are a helpful assistant providing information about ${params._nme} when relevant, based on the provided data. You can also answer questions on any topic using your general knowledge.
+      const systemPrompt = `You are a versatile assistant who can answer questions on any topic. When the query relates to ${params._nme}, use the provided doctor information to give accurate details. For all other topics, use your general knowledge to provide helpful and accurate responses.
 
-Doctor Information (when relevant):
+Doctor Information (use when relevant):
 ${doctorContext}
 
-Provide concise answers (max 100 words) for summary requests, otherwise be detailed. Include ratings and review counts accurately when discussing ${params._nme}.`;
+Provide concise answers (max 100 words) for summary requests, otherwise be detailed. Include ratings and review counts accurately when discussing ${params._nme}. Always aim to be helpful and engaging.`;
 
       const messages = [
         {
@@ -165,7 +162,7 @@ Provide concise answers (max 100 words) for summary requests, otherwise be detai
       this.sendMessage(ws, {
         type: "BOT_RESPONSE",
         payload: {
-          message: `I apologize, but I'm having trouble processing your request. Please try again or ask something else.`,
+          message: `I apologize, but I'm having trouble processing your request. Please try again or ask about something else.`,
           timestamp: new Date().toISOString(),
         },
       });
