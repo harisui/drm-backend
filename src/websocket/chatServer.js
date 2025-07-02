@@ -60,7 +60,7 @@ class ChatWebSocketServer {
       this.sendMessage(ws, {
         type: "CHAT_INITIALIZED",
         payload: {
-          message: `Hello! I'm here to answer any questions you have, including information about ${params._nme} or any other topic you'd like to explore. What's on your mind?`,
+          message: `Hello! I'm here to answer any questions you have, about ${params._nme} or anything else. What's on your mind?`,
         },
       });
     } catch (error) {
@@ -77,34 +77,7 @@ class ChatWebSocketServer {
       }
 
       const { params, report } = ws.doctorInfo;
-      const followUpPrompt = 'Feel free to ask me anything, and I’ll do my best to provide a helpful response!';
-
-      if (this.isGreeting(message)) {
-        this.sendMessage(ws, {
-          type: "BOT_RESPONSE",
-          payload: {
-            message: `Hi! I'm ready to chat about ${params._nme} or anything else you're curious about. What's up?`,
-            timestamp: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-
-      if (this.isEngagementPrompt(message)) {
-        this.sendMessage(ws, {
-          type: "BOT_RESPONSE",
-          payload: {
-            message: `Happy to help! Ask me about ${params._nme} or any other topic you’d like to discuss.`,
-            timestamp: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-
-      if (this.isAnythingToNoteQuery(message)) {
-        await this.handleAnythingToNoteQuery(ws, params, report);
-        return;
-      }
+      const followUpPrompt = 'Feel free to ask me anything else!';
 
       this.sendMessage(ws, {
         type: "BOT_TYPING",
@@ -116,12 +89,12 @@ class ChatWebSocketServer {
           message.toLowerCase().includes('brief') ||
           message.toLowerCase().includes('overview');
 
-      const systemPrompt = `You are a versatile assistant who can answer questions on any topic. When the query relates to ${params._nme}, use the provided doctor information to give accurate details. For all other topics, use your general knowledge to provide helpful and accurate responses.
+      const systemPrompt = `You are a versatile assistant capable of answering any question on any topic. When the query relates to ${params._nme}, use the provided doctor information to give accurate details. For all other topics, use your general knowledge to provide helpful and accurate responses.
 
 Doctor Information (use when relevant):
 ${doctorContext}
 
-Provide concise answers (max 100 words) for summary requests, otherwise be detailed. Include ratings and review counts accurately when discussing ${params._nme}. Always aim to be helpful and engaging.`;
+Provide concise answers (max 100 words) for summary requests, otherwise be detailed. Always aim to be helpful and engaging.`;
 
       const messages = [
         {
@@ -263,36 +236,6 @@ ${report.summary}
     });
   }
 
-  isEngagementPrompt(message) {
-    const engagementPhrases = [
-      'any questions',
-      'any other questions',
-      'if you have questions',
-      'let me know if',
-      'just type them here',
-      'anything else',
-      'need more info',
-      'want to know more',
-      'still have questions',
-      'feel free to ask',
-      'can i help with',
-      'can i assist',
-      'how can i help',
-      'how can i assist',
-    ];
-    const lowerMessage = message.toLowerCase();
-    return engagementPhrases.some(phrase => lowerMessage.includes(phrase));
-  }
-
-  isGreeting(message) {
-    const greetings = [
-      'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening',
-      'howdy', 'yo', 'hiya', 'sup', 'what\'s up', 'morning', 'evening', 'afternoon'
-    ];
-    const lowerMessage = message.trim().toLowerCase();
-    return greetings.some(greet => new RegExp(`\\b${greet}\\b`).test(lowerMessage));
-  }
-
   hasFollowUpPrompt(response) {
     const followUpPhrases = [
       'if you have any more questions',
@@ -310,98 +253,6 @@ ${report.summary}
     ];
     const lowerResponse = response.toLowerCase();
     return followUpPhrases.some(phrase => lowerResponse.includes(phrase));
-  }
-
-  isAnythingToNoteQuery(message) {
-    const noteKeywords = [
-      'anything to note',
-      'anything to know',
-      'important to note',
-      'should i know',
-      'what should i know',
-      'anything notable',
-      'anything noteworthy',
-      'key points',
-      'important points',
-      'things to note',
-      'things to know',
-      'notable things',
-      'noteworthy things'
-    ];
-    const lowerMessage = message.toLowerCase();
-    return noteKeywords.some(keyword => lowerMessage.includes(keyword));
-  }
-
-  async handleAnythingToNoteQuery(ws, params, report) {
-    try {
-      this.sendMessage(ws, {
-        type: "BOT_TYPING",
-        payload: { isTyping: true },
-      });
-
-      let allReviews = [];
-      if (report.originalApiResponse && Array.isArray(report.originalApiResponse)) {
-        report.originalApiResponse.forEach(page => {
-          if (page && page.results && Array.isArray(page.results)) {
-            allReviews = [...allReviews, ...page.results];
-          }
-        });
-      }
-
-      const totalReviews = allReviews.length;
-      const sumAverage = allReviews.reduce((sum, review) => sum + (review.average || 0), 0);
-
-      const avgOverall = totalReviews > 0
-          ? parseFloat(((sumAverage / totalReviews) * 2).toFixed(1))
-          : params._rt
-              ? parseFloat((+params._rt * 2).toFixed(1))
-              : 'N/A';
-
-      const positiveReviews = allReviews.filter(review => review.average >= 4);
-      const negativeReviews = allReviews.filter(review => review.average <= 2);
-
-      let response = `Key Points About ${params._nme}\n\n`;
-
-      if (avgOverall !== 'N/A') {
-        if (avgOverall >= 9.0) {
-          response += `**Rating**: ${avgOverall}/10 - Excellent\n\n`;
-        } else if (avgOverall >= 8.0) {
-          response += `**Rating**: ${avgOverall}/10 - Good\n\n`;
-        } else if (avgOverall >= 6.0) {
-          response += `**Rating**: ${avgOverall}/10 - Average\n\n`;
-        } else {
-          response += `**Rating**: ${avgOverall}/10 - Below Average\n\n`;
-        }
-      }
-
-      if (report.insights && report.insights.length > 0) {
-        response += `**Key Points**:\n`;
-        const importantInsights = report.insights.slice(0, 3);
-        importantInsights.forEach(insight => {
-          response += `• ${insight}\n`;
-        });
-        response += `\n`;
-      }
-
-      response += `**Overall**: ${params._nme} is ${avgOverall >= 8.0 ? 'a well-regarded' : avgOverall >= 6.0 ? 'a moderately rated' : 'a lower-rated'} ${params._spt.replace(/-/g, ' ')} specialist. ${positiveReviews.length > negativeReviews.length ? 'Most patients report positive experiences.' : negativeReviews.length > positiveReviews.length ? 'Some patients have raised concerns.' : 'Patient experiences are mixed.'}`;
-
-      this.sendMessage(ws, {
-        type: "BOT_RESPONSE",
-        payload: {
-          message: response,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      console.error("Error handling anything to note query:", error);
-      this.sendMessage(ws, {
-        type: "BOT_RESPONSE",
-        payload: {
-          message: `I apologize, but I'm having trouble analyzing the key points about ${params._nme}. Please try asking about their ratings or reviews instead.`,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    }
   }
 }
 
