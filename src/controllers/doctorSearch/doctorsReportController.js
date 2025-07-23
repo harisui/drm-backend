@@ -380,7 +380,9 @@ const DoctorReportController = {
       const result = {
         positiveComments: {
           first: positiveComments[0] || null,
-          second: positiveComments[1] || null
+          second: positiveComments[1] || null,
+          third: positiveComments[2] || null,
+          fourth: positiveComments[3] || null,
         },
         negativeComment: negativeComments[0] || null,
         yearlyData,
