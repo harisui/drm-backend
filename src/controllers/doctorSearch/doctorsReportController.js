@@ -30,7 +30,7 @@ const DoctorReportController = {
         );
 
         const data = reviewsResponse.data;
-        rawApiResponses.push(data); 
+        rawApiResponses.push(data);
         allReviews.push(...data.results);
         totalPages = data.total_pages || 1;
         if (currentPage >= totalPages) break;
@@ -307,7 +307,7 @@ const DoctorReportController = {
       const positiveComments = allReviews
         .filter(r => parseInt(r.rating) >= MIN_RATING)
         .sort((a, b) => parseInt(b.rating) - parseInt(a.rating))
-        .slice(0, 2)
+        .slice(0, 4)
         .map(review => ({
           author: review.user?.name || 'Anonymous',
           comment:
@@ -323,7 +323,7 @@ const DoctorReportController = {
       const negativeComments = allReviews
         .filter(r => parseInt(r.rating) <= MAX_RATING)
         .sort((a, b) => parseInt(a.rating) - parseInt(b.rating))
-        .slice(0, 1)
+        .slice(0, 2)
         .map(review => ({
           author: review.user?.name || 'Anonymous',
           comment:
