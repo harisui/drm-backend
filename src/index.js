@@ -14,18 +14,22 @@ app.use(express.json());
 app.use(cors());
 app.use(morgan('dev'));
 
-app.use("/api/doctors", doctorsRoutes)
+app.use("/doctors", doctorsRoutes)
 
 app.get("/", (req, res) => {
   res.json({ message: "Test Route!" });
 });
 
+// Socket.IO handles its own routes
+// No need for a specific route handler for WebSocket connections
+
 const server = createServer(app);
+console.log('HTTP server created (SSL termination is handled by nginx)');
 
 new ChatWebSocketServer(server);
 
 const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`WebSocket server is running on ws://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0',() => {
+  console.log(`Server is running on http://localhost:${PORT} (SSL termination via nginx)`);
+  console.log(`Socket.IO server is running on http://localhost:${PORT} (SSL termination via nginx)`);
 });
