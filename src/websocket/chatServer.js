@@ -11,7 +11,7 @@ const openai = new OpenAI({
 class ChatWebSocketServer {
   constructor(server) {
     this.io = new Server(server, {
-      path: '/socket.io/',
+      path: process.env.SOCKET_IO_PATH || '/socket.io/',
       cors: {
         origin: "*",
         methods: ["GET", "POST"]
