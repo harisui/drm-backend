@@ -3,6 +3,8 @@ import cors from "cors";
 import morgan from 'morgan';
 import dotenv from "dotenv";
 import { createServer } from 'http';
+import { createServer as createHttpsServer } from 'https';
+import fs from 'fs';
 import { doctorsRoutes } from "./routes/doctorsRoutes.js";
 import ChatWebSocketServer from "./websocket/chatServer.js";
 
@@ -14,14 +16,11 @@ app.use(express.json());
 app.use(cors());
 app.use(morgan('dev'));
 
-app.use("/doctors", doctorsRoutes)
+app.use("/api/doctors", doctorsRoutes)
 
 app.get("/", (req, res) => {
   res.json({ message: "Test Route!" });
 });
-
-// Socket.IO handles its own routes
-// No need for a specific route handler for WebSocket connections
 
 const server = createServer(app);
 console.log('HTTP server created (SSL termination is handled by nginx)');

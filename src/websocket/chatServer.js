@@ -15,7 +15,11 @@ class ChatWebSocketServer {
       cors: {
         origin: "*",
         methods: ["GET", "POST"]
-      }
+      },
+      transports: ['polling', 'websocket'], // Explicitly enable all transports
+      allowUpgrades: true, // Allow transport upgrades
+      pingTimeout: 30000, // Increase ping timeout
+      pingInterval: 25000 // Increase ping interval
     });
     this.setupWebSocket();
   }
