@@ -1,4 +1,4 @@
-import { Server } from "socket.io";
+import { WebSocketServer } from "ws";
 import OpenAI from "openai";
 import dotenv from "dotenv";
 
@@ -10,63 +10,54 @@ const openai = new OpenAI({
 
 class ChatWebSocketServer {
   constructor(server) {
-    this.io = new Server(server, {
-      path: process.env.SOCKET_IO_PATH || '/socket.io/',
-      cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-      },
-      transports: ['polling', 'websocket'], // Explicitly enable all transports
-      allowUpgrades: true, // Allow transport upgrades
-      pingTimeout: 30000, // Increase ping timeout
-      pingInterval: 25000 // Increase ping interval
-    });
+    this.wss = new WebSocketServer({ server });
     this.setupWebSocket();
   }
 
   setupWebSocket() {
-    this.io.on("connection", (socket) => {
+    this.wss.on("connection", (ws) => {
       console.log("New client connected");
 
-      socket.on("message", async (data) => {
+      ws.on("message", async (message) => {
         try {
-          await this.handleMessage(socket, data);
+          const data = JSON.parse(message);
+          await this.handleMessage(ws, data);
         } catch (error) {
-          console.error("Error handling message:", error);
-          this.sendError(socket, "Invalid message format");
+          console.error("Error parsing message:", error);
+          this.sendError(ws, "Invalid message format");
         }
       });
 
-      socket.on("disconnect", () => {
+      ws.on("close", () => {
         console.log("Client disconnected");
       });
 
-      socket.on("error", (error) => {
-        console.error("Socket.IO error:", error);
+      ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
       });
     });
   }
 
-  async handleMessage(socket, data) {
+  async handleMessage(ws, data) {
     const { type, payload } = data;
 
     switch (type) {
       case "CHAT_MESSAGE":
-        await this.handleChatMessage(socket, payload);
+        await this.handleChatMessage(ws, payload);
         break;
       case "INIT_CHAT":
-        await this.initializeChat(socket, payload);
+        await this.initializeChat(ws, payload);
         break;
       default:
-        this.sendError(socket, "Unknown message type");
+        this.sendError(ws, "Unknown message type");
     }
   }
 
-  async initializeChat(socket, { params, report }) {
+  async initializeChat(ws, { params, report }) {
     try {
-      socket.doctorInfo = { params, report };
+      ws.doctorInfo = { params, report };
 
-      this.sendMessage(socket, {
+      this.sendMessage(ws, {
         type: "CHAT_INITIALIZED",
         payload: {
           message: `Hello! I'm here to answer any questions you have, about ${params._nme} or anything else. What's on your mind?`,
@@ -74,21 +65,21 @@ class ChatWebSocketServer {
       });
     } catch (error) {
       console.error("Error initializing chat:", error);
-      this.sendError(socket, "Sorry, there was an issue initializing the chat. Please refresh the page and try again.");
+      this.sendError(ws, "Sorry, there was an issue initializing the chat. Please refresh the page and try again.");
     }
   }
 
-  async handleChatMessage(socket, { message, conversationHistory = [] }) {
+  async handleChatMessage(ws, { message, conversationHistory = [] }) {
     try {
-      if (!socket.doctorInfo) {
-        this.sendError(socket, "Chat not initialized. Please refresh the page.");
+      if (!ws.doctorInfo) {
+        this.sendError(ws, "Chat not initialized. Please refresh the page.");
         return;
       }
 
-      const { params, report } = socket.doctorInfo;
+      const { params, report } = ws.doctorInfo;
       const followUpPrompt = 'Feel free to ask me anything else!';
 
-      this.sendMessage(socket, {
+      this.sendMessage(ws, {
         type: "BOT_TYPING",
         payload: { isTyping: true },
       });
@@ -132,7 +123,7 @@ Provide concise answers (max 100 words) for summary requests, otherwise be detai
         botResponse += `\n\n${followUpPrompt}`;
       }
 
-      this.sendMessage(socket, {
+      this.sendMessage(ws, {
         type: "BOT_RESPONSE",
         payload: {
           message: botResponse,
@@ -141,7 +132,7 @@ Provide concise answers (max 100 words) for summary requests, otherwise be detai
       });
     } catch (error) {
       console.error("Error handling chat message:", error);
-      this.sendMessage(socket, {
+      this.sendMessage(ws, {
         type: "BOT_RESPONSE",
         payload: {
           message: `I apologize, but I'm having trouble processing your request. Please try again or ask about something else.`,
@@ -232,12 +223,17 @@ ${report.summary}
     return context;
   }
 
-  sendMessage(socket, data) {
-    socket.emit(data.type, data.payload);
+  sendMessage(ws, data) {
+    if (ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify(data));
+    }
   }
 
-  sendError(socket, message) {
-    socket.emit("ERROR", { message });
+  sendError(ws, message) {
+    this.sendMessage(ws, {
+      type: "ERROR",
+      payload: { message },
+    });
   }
 
   hasFollowUpPrompt(response) {
